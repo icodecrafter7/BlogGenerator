@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 // Import Pages
@@ -7,6 +7,9 @@ import Login from './pages/Login.jsx';
 import Signup from './pages/Signup.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import EditorPage from './pages/EditorPage.jsx';
+import CommunityFeed from './pages/CommunityFeed.jsx';
+import BlogDetails from './pages/BlogDetails.jsx';
+import UserProfile from './pages/UserProfile.jsx';
 
 // Configure Axios Defaults
 axios.defaults.withCredentials = true;
@@ -81,9 +84,11 @@ export default function App() {
         setUser(data.user);
         localStorage.setItem('empathwrite_user', JSON.stringify(data.user));
       }
+      return { success: true };
     } catch (error) {
       console.error('Guest login failed:', error);
       alert('Failed to initialize guest session.');
+      return { success: false };
     } finally {
       setLoading(false);
     }
@@ -100,20 +105,33 @@ export default function App() {
     }
   };
 
+  const updateProfileInState = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem('empathwrite_user', JSON.stringify(updatedUser));
+  };
+
   const ProtectedRoute = ({ children }) => {
+    const location = useLocation();
     if (!user) {
-      return <Navigate to="/login" replace />;
+      return <Navigate to="/login" state={{ from: location }} replace />;
     }
     return children;
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, loginAsGuest, loading }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, loginAsGuest, updateProfileInState, loading }}>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
-          <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup />} />
+          {/* Public Views */}
+          <Route path="/" element={<CommunityFeed />} />
+          <Route path="/blog/:blogId" element={<BlogDetails />} />
+          <Route path="/user/:userId" element={<UserProfile />} />
+
+          {/* Auth Views */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
           
+          {/* Protected Creator Workspace Views */}
           <Route 
             path="/dashboard" 
             element={
@@ -131,7 +149,7 @@ export default function App() {
             } 
           />
 
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthContext.Provider>

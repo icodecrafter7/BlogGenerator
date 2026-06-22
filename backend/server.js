@@ -13,6 +13,7 @@ dns.setServers(['8.8.8.8', '1.1.1.1']);
 import authRoutes from './routes/auth.js';
 import blogRoutes from './routes/blogs.js';
 import generateRoutes from './routes/generate.js';
+import commentRoutes from './routes/comments.js';
 
 // Load environment variables
 dotenv.config();
@@ -38,6 +39,14 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// Disable caching for dynamic API responses to prevent back-navigation stale reads
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
 // Health Check
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', time: new Date() });
@@ -47,6 +56,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/blogs', generateRoutes); // Merged outline, stream, inline-edit routes under /api/blogs
+app.use('/api/comments', commentRoutes);
 
 // Global error handler middleware
 app.use((err, req, res, next) => {

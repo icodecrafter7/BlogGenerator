@@ -1,10 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { useTheme } from '../context/ThemeContext';
 
 export default function ThreeBackground() {
+  const { theme } = useTheme();
   const containerRef = useRef(null);
 
   useEffect(() => {
+    if (theme === 'light') return;
+    
     const container = containerRef.current;
     if (!container) return;
 
@@ -101,7 +105,9 @@ export default function ThreeBackground() {
         container.removeChild(renderer.domElement);
       }
     };
-  }, []);
+  }, [theme]);
+
+  if (theme === 'light') return null;
 
   return (
     <div 
@@ -110,3 +116,4 @@ export default function ThreeBackground() {
     />
   );
 }
+

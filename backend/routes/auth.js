@@ -1,6 +1,8 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Blog from '../models/Blog.js';
+import protect from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -26,7 +28,8 @@ const sendTokenResponse = (user, statusCode, res) => {
       user: {
         id: user._id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        bio: user.bio || ""
       }
     });
 };
@@ -102,7 +105,8 @@ router.post('/guest', async (req, res) => {
       user = await User.create({
         name: 'Guest Creator',
         email: 'guest@empathwrite.local',
-        password: 'guest_secure_password_2026_salt'
+        password: 'guest_secure_password_2026_salt',
+        bio: 'Just another writer looking for inspiration'
       });
     }
     sendTokenResponse(user, 200, res);
@@ -124,6 +128,78 @@ router.post('/logout', (req, res) => {
   });
 
   res.status(200).json({ success: true, message: 'Logged out successfully' });
+});
+
+// @desc    Get user profile data (Public)
+// @route   GET /api/auth/profile/:userId
+// @access  Public
+router.get('/profile/:userId', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Find all public blogs authored by this user
+    const publicBlogs = await Blog.find({ userId: user._id, status: 'published', visibility: 'public' })
+      .sort({ createdAt: -1 });
+
+    // Find total blogs
+    const totalBlogs = publicBlogs.length;
+
+    // Calculate total likes received across all public blogs
+    let totalLikesReceived = 0;
+    publicBlogs.forEach(blog => {
+      totalLikesReceived += blog.likes ? blog.likes.length : 0;
+    });
+
+    res.status(200).json({
+      success: true,
+      profile: {
+        id: user._id,
+        name: user.name,
+        bio: user.bio || '',
+        joinedDate: user.createdAt,
+        totalBlogs,
+        totalLikesReceived,
+        blogs: publicBlogs
+      }
+    });
+  } catch (error) {
+    console.error(`Get Profile Route Error: ${error.message}`);
+    res.status(500).json({ error: 'Server error retrieving user profile' });
+  }
+});
+
+// @desc    Update user profile (Private)
+// @route   PUT /api/auth/profile
+// @access  Private
+router.put('/profile', protect, async (req, res) => {
+  try {
+    const { name, bio } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (name) user.name = name;
+    if (bio !== undefined) user.bio = bio;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        bio: user.bio || ''
+      }
+    });
+  } catch (error) {
+    console.error(`Update Profile Route Error: ${error.message}`);
+    res.status(500).json({ error: 'Server error updating profile' });
+  }
 });
 
 export default router;
