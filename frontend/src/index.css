@@ -8,6 +8,26 @@
   --color-brand-emerald: #059669;
   --color-brand-emerald-hover: #047857;
   --color-brand-dark-card: #131b2e;
+  
+  /* Aether 3D Theme Custom Colors */
+  --color-aether-obsidian: #0c1324;
+  --color-aether-dark: #020617;
+  --color-aether-primary: #d0bcff;
+  --color-aether-secondary: #4cd7f6;
+  --color-aether-tertiary: #ffafd3;
+  --color-aether-tertiary-container: #e364a7;
+  --color-aether-on-tertiary-container: #560038;
+  --color-aether-container: #191f31;
+  --color-aether-container-low: #151b2d;
+  --color-aether-container-lowest: #070d1f;
+  --color-aether-container-high: #23293c;
+  --color-aether-container-highest: #2e3447;
+  --color-aether-on-surface: #dce1fb;
+  --color-aether-on-surface-variant: #cbc3d7;
+  --color-aether-outline: #958ea0;
+  --color-aether-outline-variant: #494454;
+  --color-aether-btn-purple: #6d3bd7;
+  --color-aether-btn-cyan: #03b5d3;
 }
 
 @layer base {
@@ -32,6 +52,77 @@
   ::-webkit-scrollbar-thumb:hover {
     background: #334155;
   }
+}
+
+/* Glassmorphic Panel */
+.glass-panel {
+  backdrop-filter: blur(20px);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(139, 92, 246, 0.1);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.glass-panel:hover {
+  box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 30px rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.5);
+  transform: translateY(-4px) scale(1.01);
+}
+
+/* Recessed Inputs */
+.input-recessed {
+  background: rgba(7, 13, 31, 0.6);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: all 0.3s ease;
+}
+
+.input-recessed:focus {
+  outline: none;
+  border-color: #4cd7f6;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 0 15px rgba(76, 215, 246, 0.3);
+}
+
+/* Gradient Buttons */
+.btn-gradient {
+  background: linear-gradient(135deg, #d0bcff 0%, #4cd7f6 100%);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-gradient:hover {
+  transform: scale(1.03);
+  box-shadow: 0 8px 25px rgba(76, 215, 246, 0.5);
+}
+
+/* Recessed input in Dashboard */
+.recessed-input {
+  background: rgba(7, 13, 31, 0.8);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Side navigation active shadow */
+.shadow-active-purple {
+  box-shadow: 0 0 15px rgba(227, 100, 167, 0.4);
+}
+
+/* Nebula glow atmospheres */
+.nebula-glow {
+  position: absolute;
+  filter: blur(150px);
+  opacity: 0.15;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.floating-layer {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
 /* TipTap Editor Styles */

@@ -5,7 +5,8 @@ import StarterKit from '@tiptap/starter-kit';
 import axios from 'axios';
 import { 
   ArrowLeft, Save, CheckCircle, Sparkles, Plus, Trash2, 
-  ArrowUp, ArrowDown, ChevronRight, Edit2, Play, Eye, EyeOff, HelpCircle
+  ArrowUp, ArrowDown, ChevronRight, Edit2, Play, Eye, EyeOff, HelpCircle,
+  Download, FileText
 } from 'lucide-react';
 
 export default function EditorPage() {
@@ -28,6 +29,23 @@ export default function EditorPage() {
   // New heading states
   const [newHeadingTitle, setNewHeadingTitle] = useState('');
   const [newHeadingLevel, setNewHeadingLevel] = useState(2);
+
+  // Export dropdown state and ref
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const downloadMenuRef = useRef(null);
+
+  // Close export dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target)) {
+        setShowDownloadMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Initialize TipTap
   const editor = useEditor({
@@ -253,11 +271,112 @@ export default function EditorPage() {
     setSaveStatus('Unsaved Changes');
   };
 
+  // TXT Exporter
+  const handleDownloadTxt = () => {
+    if (!editor) return;
+    const title = blog?.title || 'Untitled Blog';
+    const text = editor.getText();
+    const fileContent = `${title}\n\n${text}`;
+    
+    const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // PDF Exporter using dynamically imported jsPDF
+  const handleDownloadPdf = async () => {
+    if (!editor) return;
+    try {
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pageHeight = doc.internal.pageSize.height;
+      const margin = 20; // 20mm margins
+      const contentWidth = doc.internal.pageSize.width - margin * 2;
+      let posY = margin;
+
+      const checkPageBreak = (neededHeight) => {
+        if (posY + neededHeight > pageHeight - margin) {
+          doc.addPage();
+          posY = margin;
+        }
+      };
+
+      const addText = (text, fontSize, isBold = false, spacingAfter = 6, indent = 0) => {
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+        doc.setFontSize(fontSize);
+        
+        const wrappedText = doc.splitTextToSize(text, contentWidth - indent);
+        const lineHeight = fontSize * 0.3527 * 1.25;
+        const totalHeight = wrappedText.length * lineHeight;
+
+        checkPageBreak(totalHeight + spacingAfter);
+
+        wrappedText.forEach((line) => {
+          doc.text(line, margin + indent, posY);
+          posY += lineHeight;
+        });
+
+        posY += spacingAfter;
+      };
+
+      // 1. Title
+      const title = blog?.title || 'Untitled Blog';
+      addText(title, 24, true, 12, 0);
+
+      // 2. Parse HTML structure into readable sections
+      const htmlString = editor.getHTML();
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlString;
+
+      const children = tempDiv.childNodes;
+      children.forEach((node) => {
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+        const tag = node.tagName.toLowerCase();
+        const text = node.innerText || node.textContent || '';
+        if (!text.trim() && tag !== 'ul' && tag !== 'ol') return;
+
+        if (tag === 'h2') {
+          addText(text, 16, true, 8, 0);
+        } else if (tag === 'h3') {
+          addText(text, 13, true, 6, 0);
+        } else if (tag === 'p') {
+          addText(text, 10, false, 5, 0);
+        } else if (tag === 'ul' || tag === 'ol') {
+          const listItems = node.childNodes;
+          let count = 1;
+          listItems.forEach((li) => {
+            if (li.nodeType !== Node.ELEMENT_NODE || li.tagName.toLowerCase() !== 'li') return;
+            const bullet = tag === 'ul' ? '• ' : `${count}. `;
+            const liText = bullet + (li.innerText || li.textContent || '');
+            addText(liText, 10, false, 4, 6);
+            count++;
+          });
+          posY += 2;
+        }
+      });
+
+      doc.save(`${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pdf`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0b0f19] text-slate-400">
+      <div className="min-h-screen flex items-center justify-center bg-aether-dark text-slate-400">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-[#059669] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-10 h-10 border-4 border-aether-secondary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <span>Configuring creator workspace...</span>
         </div>
       </div>
@@ -265,13 +384,13 @@ export default function EditorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] flex flex-col max-h-screen overflow-hidden">
+    <div className="min-h-screen bg-aether-dark text-aether-on-surface flex flex-col max-h-screen overflow-hidden relative">
       {/* Editor Header Navigation */}
-      <header className="h-16 border-b border-slate-800 bg-[#131b2e] flex items-center justify-between px-6 shrink-0">
+      <header className="h-16 border-b border-white/5 bg-aether-obsidian/40 backdrop-blur-xl flex items-center justify-between px-6 shrink-0 z-30 shadow-md">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/dashboard')}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition cursor-pointer"
+            className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition cursor-pointer"
           >
             <ArrowLeft size={18} />
           </button>
@@ -301,16 +420,53 @@ export default function EditorPage() {
             onClick={togglePublishStatus}
             className={`px-4 py-1.5 rounded-lg border text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${
               blog?.status === 'published' 
-                ? 'bg-emerald-950/20 border-emerald-500/30 text-[#059669] hover:bg-emerald-950/35' 
-                : 'bg-slate-900 border-slate-850 text-slate-400 hover:bg-slate-850'
+                ? 'bg-aether-secondary/10 border-aether-secondary/30 text-aether-secondary hover:bg-aether-secondary/20' 
+                : 'bg-aether-container-low border-white/5 text-aether-outline hover:bg-white/5'
             }`}
           >
             {blog?.status === 'published' ? 'Published' : 'Mark Published'}
           </button>
 
+          {/* Export Dropdown Menu */}
+          <div className="relative" ref={downloadMenuRef}>
+            <button
+              onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+              aria-expanded={showDownloadMenu}
+              aria-haspopup="true"
+              className="px-4 py-1.5 bg-aether-container-low border border-white/5 text-aether-on-surface-variant hover:bg-white/5 hover:text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <Download size={14} />
+              Export
+            </button>
+            {showDownloadMenu && (
+              <div className="absolute right-0 mt-2 w-44 bg-aether-container border border-white/10 rounded-xl shadow-2xl p-1.5 space-y-0.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150 backdrop-blur-md">
+                <button
+                  onClick={() => {
+                    handleDownloadTxt();
+                    setShowDownloadMenu(false);
+                  }}
+                  className="w-full px-3 py-1.5 text-left text-slate-300 hover:text-white hover:bg-white/5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-2"
+                >
+                  <FileText size={13} className="text-slate-400" />
+                  Plain Text (.txt)
+                </button>
+                <button
+                  onClick={() => {
+                    handleDownloadPdf();
+                    setShowDownloadMenu(false);
+                  }}
+                  className="w-full px-3 py-1.5 text-left text-slate-300 hover:text-white hover:bg-white/5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-2"
+                >
+                  <FileText size={13} className="text-aether-secondary" />
+                  PDF Document (.pdf)
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={() => handleSave(false)}
-            className="px-4 py-1.5 bg-[#059669] hover:bg-[#047857] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+            className="px-4 py-1.5 bg-aether-primary/20 hover:bg-aether-primary/30 border border-aether-primary/30 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
           >
             <Save size={14} />
             Save Draft
@@ -319,17 +475,17 @@ export default function EditorPage() {
       </header>
 
       {/* Main Workspace split panel */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
+      <div className="flex-1 flex overflow-hidden min-h-0 relative z-10">
         
         {/* Left Sidebar - Outline Config */}
-        <aside className="w-[350px] border-r border-slate-800 bg-[#131b2e]/60 flex flex-col overflow-hidden shrink-0">
-          <div className="p-4 border-b border-slate-800 bg-[#0b0f19]/30 flex justify-between items-center shrink-0">
+        <aside className="w-[350px] border-r border-white/10 bg-aether-container/50 backdrop-blur-2xl flex flex-col overflow-hidden shrink-0 shadow-2xl z-10">
+          <div className="p-4 border-b border-white/5 bg-aether-container-lowest/50 flex justify-between items-center shrink-0">
             <span className="text-sm font-bold text-white tracking-wide">Workspace Outline</span>
             {blog?.outline?.length > 0 && (
               <button
                 onClick={generateOutline}
                 disabled={outlineLoading}
-                className="text-xs text-[#059669] hover:text-[#047857] font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
+                className="text-xs text-aether-secondary hover:text-white font-semibold flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
               >
                 <Sparkles size={12} /> Regenerate
               </button>
@@ -346,7 +502,7 @@ export default function EditorPage() {
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {outlineLoading ? (
               <div className="py-20 text-center text-slate-500 flex flex-col items-center gap-3">
-                <div className="w-6 h-6 border-2 border-[#059669] border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-6 h-6 border-2 border-aether-secondary border-t-transparent rounded-full animate-spin"></div>
                 <span className="text-xs">Generating Outline with Groq...</span>
               </div>
             ) : (!blog?.outline || blog.outline.length === 0) ? (
@@ -358,9 +514,9 @@ export default function EditorPage() {
                 </p>
                 <button
                   onClick={generateOutline}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-white text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 transition cursor-pointer"
+                  className="px-4 py-2 bg-aether-container-high hover:bg-aether-container-highest text-white text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 transition cursor-pointer"
                 >
-                  <Sparkles size={12} className="text-[#059669]" />
+                  <Sparkles size={12} className="text-aether-secondary" />
                   Build Blueprint
                 </button>
               </div>
@@ -369,21 +525,21 @@ export default function EditorPage() {
                 {blog.outline.map((section, idx) => (
                   <div 
                     key={idx}
-                    className="p-3 bg-[#0b0f19]/80 border border-slate-850 hover:border-slate-800 rounded-xl flex items-start justify-between group transition"
+                    className="p-3.5 glass-panel bg-aether-container-lowest/40 hover:border-aether-primary/30 border border-white/5 rounded-2xl flex items-start justify-between group transition-all duration-200"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
+                        <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border ${
                           section.level === 2 
-                            ? 'bg-emerald-950/30 text-[#059669] border border-emerald-500/10' 
-                            : 'bg-indigo-950/30 text-indigo-400 border border-indigo-500/10'
+                            ? 'bg-aether-secondary/10 text-aether-secondary border-aether-secondary/20' 
+                            : 'bg-aether-primary/10 text-aether-primary border-aether-primary/20'
                         }`}>
                           H{section.level}
                         </span>
                         
                         <input
                           type="text"
-                          className="bg-transparent border-none text-slate-200 text-xs font-bold focus:outline-none focus:ring-0 p-0 w-48"
+                          className="bg-transparent border-none text-white text-xs font-bold focus:outline-none focus:ring-0 p-0 w-48"
                           value={section.heading}
                           onChange={(e) => {
                             const updatedOutline = [...blog.outline];
@@ -434,20 +590,20 @@ export default function EditorPage() {
 
           {/* Add heading section */}
           {blog?.outline?.length > 0 && (
-            <div className="p-4 border-t border-slate-800 bg-[#0b0f19]/20 space-y-3 shrink-0">
+            <div className="p-4 border-t border-white/5 bg-aether-container-lowest/30 space-y-3 shrink-0">
               <span className="text-xs font-semibold text-slate-400 block">Append Blueprint Section</span>
               
               <div className="flex gap-2">
                 <input
                   type="text"
                   placeholder="Heading title..."
-                  className="flex-1 px-3 py-1.5 bg-[#0b0f19] border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-[#059669] transition"
+                  className="flex-1 input-recessed px-3 py-1.5 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-aether-secondary transition"
                   value={newHeadingTitle}
                   onChange={(e) => setNewHeadingTitle(e.target.value)}
                 />
                 
                 <select
-                  className="px-2 py-1.5 bg-[#0b0f19] border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-[#059669] transition"
+                  className="px-2 py-1.5 input-recessed rounded-lg text-xs text-slate-200 focus:outline-none focus:border-aether-secondary transition"
                   value={newHeadingLevel}
                   onChange={(e) => setNewHeadingLevel(e.target.value)}
                 >
@@ -459,7 +615,7 @@ export default function EditorPage() {
               <button
                 type="button"
                 onClick={addOutlineSection}
-                className="w-full py-1.5 bg-[#131b2e] hover:bg-[#1a253f] border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
+                className="w-full py-1.5 bg-aether-container-highest border border-white/10 hover:bg-white/10 text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <Plus size={14} /> Add Section
               </button>
@@ -468,12 +624,12 @@ export default function EditorPage() {
 
           {/* Generate Draft button block */}
           {blog?.outline?.length > 0 && (
-            <div className="p-4 border-t border-slate-800 bg-[#0b0f19]/40 shrink-0">
+            <div className="p-4 border-t border-white/5 bg-aether-container-lowest/40 shrink-0">
               <button
                 type="button"
                 onClick={startGenerationStream}
                 disabled={streaming || outlineLoading}
-                className="w-full py-2.5 bg-[#059669] hover:bg-[#047857] text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 bg-aether-primary/20 hover:bg-aether-primary/30 border border-aether-primary/30 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
               >
                 <Play size={14} fill="currentColor" />
                 {streaming ? 'Streaming AI Draft...' : 'Generate AI Draft'}
@@ -483,12 +639,15 @@ export default function EditorPage() {
         </aside>
 
         {/* Right Workspace - Editor Panel */}
-        <main className="flex-1 bg-[#0b0f19] p-8 overflow-y-auto relative flex justify-center">
+        <main className="flex-1 bg-aether-dark p-8 overflow-y-auto relative flex justify-center z-10">
+          {/* Subtle atmosphere glows */}
+          <div className="nebula-glow bg-aether-primary w-[300px] h-[300px] top-[20%] left-[10%] rounded-full opacity-5"></div>
+          <div className="nebula-glow bg-aether-secondary w-[300px] h-[300px] bottom-[20%] right-[10%] rounded-full opacity-5"></div>
           
           <div className="w-full max-w-3xl relative">
             {inlineLoading && (
-              <div className="absolute top-4 right-4 flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/20 text-[#059669] px-3 py-1.5 rounded-lg text-xs backdrop-blur shadow z-10">
-                <div className="w-3.5 h-3.5 border-2 border-[#059669] border-t-transparent rounded-full animate-spin"></div>
+              <div className="absolute top-4 right-4 flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg text-xs backdrop-blur shadow z-10">
+                <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
                 <span>Executing AI inline optimization...</span>
               </div>
             )}
@@ -497,45 +656,45 @@ export default function EditorPage() {
             {showBubbleMenu && editor && (
               <div 
                 style={{ top: bubbleMenuPos.top, left: bubbleMenuPos.left }}
-                className="absolute z-30 flex items-center bg-[#131b2e] border border-slate-800 rounded-xl shadow-2xl p-1.5 gap-1 shrink-0 -translate-x-1/2 backdrop-blur-md"
+                className="absolute z-30 flex items-center bg-aether-container/95 border border-white/10 rounded-xl shadow-2xl p-1.5 gap-1 shrink-0 -translate-x-1/2 backdrop-blur-md"
               >
                 <button
                   onClick={() => handleInlineEdit('humanize')}
-                  className="px-2.5 py-1 text-slate-300 hover:text-white hover:bg-slate-850 rounded-lg text-[11px] font-semibold transition cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 text-slate-300 hover:text-white hover:bg-white/5 rounded-lg text-[11px] font-semibold transition cursor-pointer flex items-center gap-1"
                 >
-                  <Sparkles size={11} className="text-[#059669]" />
+                  <Sparkles size={11} className="text-aether-secondary" />
                   Humanize
                 </button>
                 
                 <button
                   onClick={() => handleInlineEdit('expand')}
-                  className="px-2.5 py-1 text-slate-300 hover:text-white hover:bg-slate-850 rounded-lg text-[11px] font-semibold transition cursor-pointer"
+                  className="px-2.5 py-1 text-slate-300 hover:text-white hover:bg-white/5 rounded-lg text-[11px] font-semibold transition cursor-pointer"
                 >
                   Expand
                 </button>
 
                 <button
                   onClick={() => handleInlineEdit('condense')}
-                  className="px-2.5 py-1 text-slate-300 hover:text-white hover:bg-slate-850 rounded-lg text-[11px] font-semibold transition cursor-pointer"
+                  className="px-2.5 py-1 text-slate-300 hover:text-white hover:bg-white/5 rounded-lg text-[11px] font-semibold transition cursor-pointer"
                 >
                   Condense
                 </button>
 
-                <div className="w-[1px] h-4 bg-slate-800 mx-1"></div>
+                <div className="w-[1px] h-4 bg-white/10 mx-1"></div>
 
                 <div className="relative group/tone">
                   <button
-                    className="px-2.5 py-1 text-slate-300 hover:text-white hover:bg-slate-850 rounded-lg text-[11px] font-semibold transition flex items-center gap-0.5 cursor-pointer"
+                    className="px-2.5 py-1 text-slate-300 hover:text-white hover:bg-white/5 rounded-lg text-[11px] font-semibold transition flex items-center gap-0.5 cursor-pointer"
                   >
                     Tone
                     <ChevronRight size={10} />
                   </button>
-                  <div className="hidden group-hover/tone:flex flex-col absolute left-full top-0 ml-1 bg-[#131b2e] border border-slate-800 rounded-xl p-1 gap-0.5 shadow-2xl z-40 w-28">
+                  <div className="hidden group-hover/tone:flex flex-col absolute left-full top-0 ml-1 bg-aether-container border border-white/10 rounded-xl p-1 gap-0.5 shadow-2xl z-40 w-28">
                     {['Witty', 'Conversational', 'Highly Technical'].map(t => (
                       <button
                         key={t}
                         onClick={() => handleInlineEdit('tone', t)}
-                        className="px-2.5 py-1 text-slate-400 hover:text-white hover:bg-slate-850 rounded-lg text-[10px] text-left font-medium transition cursor-pointer"
+                        className="px-2.5 py-1 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg text-[10px] text-left font-medium transition cursor-pointer"
                       >
                         {t}
                       </button>
@@ -546,7 +705,7 @@ export default function EditorPage() {
             )}
 
             {/* Rich Editor Canvas */}
-            <div className="bg-[#131b2e]/30 border border-slate-850/60 rounded-2xl p-8 shadow-xl min-h-[500px]">
+            <div className="glass-panel bg-aether-container/30 border border-white/5 rounded-2xl p-8 shadow-2xl min-h-[500px] backdrop-blur-md">
               <EditorContent editor={editor} />
             </div>
           </div>
