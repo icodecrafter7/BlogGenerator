@@ -160,54 +160,71 @@ export default function EditorPage() {
       setOutlineLoading(false);
     }
   };
+ 
+// Start content generation stream
+const startGenerationStream = () => {
+  if (streaming) return;
 
-  // Start content generation stream
-  const startGenerationStream = () => {
-    if (streaming) return;
-    setStreaming(true);
-    setError('');
-    editor.commands.setContent('<p className="shimmer-text">Aligning cognitive models and initializing streams...</p>');
+  setStreaming(true);
+  setError('');
 
-    let accumulatedHtml = '';
-    const eventSource = new EventSource(`/api/blogs/${id}/stream`, { withCredentials: true });
+  editor.commands.setContent(
+    '<p className="shimmer-text">Aligning cognitive models and initializing streams...</p>'
+  );
 
-    eventSource.onmessage = (event) => {
-      if (event.data === '[DONE]') {
-        eventSource.close();
-        setStreaming(false);
-        // Sync final content to local state and DB
-        setBlog(prev => ({ ...prev, content: accumulatedHtml }));
-        setSaveStatus('Unsaved Changes');
-      } else {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.error) {
-            setError(data.error);
-            eventSource.close();
-            setStreaming(false);
-            return;
-          }
-          
-          if (accumulatedHtml === '') {
-            // Clear the placeholder shimmer text on first token
-            editor.commands.setContent('');
-          }
+  let accumulatedHtml = '';
 
-          accumulatedHtml += data.text;
-          editor.commands.setContent(accumulatedHtml);
-        } catch (e) {
-          console.error('SSE token parse error:', e);
-        }
-      }
-    };
+  // Use the deployed backend URL in production
+  const API_URL = import.meta.env.VITE_API_URL || '';
 
-    eventSource.onerror = (err) => {
-      console.error('SSE Error:', err);
-      setError('Text streaming interrupted.');
+  const eventSource = new EventSource(
+    `${API_URL}/api/blogs/${id}/stream`,
+    { withCredentials: true }
+  );
+
+  eventSource.onmessage = (event) => {
+    if (event.data === '[DONE]') {
       eventSource.close();
       setStreaming(false);
-    };
+
+      // Sync final content to local state and DB
+      setBlog((prev) => ({
+        ...prev,
+        content: accumulatedHtml
+      }));
+
+      setSaveStatus('Unsaved Changes');
+    } else {
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.error) {
+          setError(data.error);
+          eventSource.close();
+          setStreaming(false);
+          return;
+        }
+
+        if (accumulatedHtml === '') {
+          // Clear the placeholder shimmer text on first token
+          editor.commands.setContent('');
+        }
+
+        accumulatedHtml += data.text;
+        editor.commands.setContent(accumulatedHtml);
+      } catch (e) {
+        console.error('SSE token parse error:', e);
+      }
+    }
   };
+
+  eventSource.onerror = (err) => {
+    console.error('SSE Error:', err);
+    setError('Text streaming interrupted.');
+    eventSource.close();
+    setStreaming(false);
+  };
+};
 
   // Inline action handler
   const handleInlineEdit = async (action, tonePreset = null) => {
