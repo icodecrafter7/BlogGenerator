@@ -1,0 +1,6 @@
+# System Rules for EmpathWrite AI
+
+- **Frontend Styling**: All frontend styles must use strict Tailwind CSS semantic classes and custom theme configurations defined in tailwind.config.js. Avoid inline static styles or arbitrary hardcoded pixel positioning unless dynamic/reactive.
+- **Database Mutability**: All database interactions and mutations must use Mongoose models and schemas. Raw MongoDB driver mutations are prohibited.
+- **Security Boundaries**: Validate inputs at backend entrypoints using validation mechanisms. Never process unchecked payload fields directly.
+- **Code Cleanliness**: No placeholders or incomplete implementations. Every file must be fully written and compile.

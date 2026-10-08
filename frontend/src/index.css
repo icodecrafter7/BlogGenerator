@@ -1,0 +1,325 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --color-brand-cream: #faf8f5;
+  --color-brand-obsidian: #030712;
+  --color-brand-emerald: #059669;
+  --color-brand-emerald-hover: #047857;
+  --color-brand-dark-card: #0b1220;
+  
+  /* Aether 3D Theme Custom Colors (SaaS futuristic theme presets) */
+  --color-aether-obsidian: #030712;
+  --color-aether-dark: #050b1a;
+  --color-aether-primary: #8b5cf6;
+  --color-aether-secondary: #38bdf8;
+  --color-aether-tertiary: #a855f7;
+  --color-aether-tertiary-container: rgba(139, 92, 246, 0.15);
+  --color-aether-on-tertiary-container: #38bdf8;
+  --color-aether-container: #0b1220;
+  --color-aether-container-low: #0f172a;
+  --color-aether-container-lowest: #030712;
+  --color-aether-container-high: #111827;
+  --color-aether-container-highest: #1f2937;
+  --color-aether-on-surface: #ffffff;
+  --color-aether-on-surface-variant: #94a3b8;
+  --color-aether-outline: rgba(255, 255, 255, 0.08);
+  --color-aether-outline-variant: #64748b;
+  --color-aether-btn-purple: #8b5cf6;
+  --color-aether-btn-cyan: #38bdf8;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-brand-cream);
+    color: #1e293b;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  html.dark body {
+    background: radial-gradient(circle at top, rgba(56, 189, 248, 0.15), transparent 50%), linear-gradient(180deg, #030712 0%, #050b1a 50%, #070f22 100%);
+    background-attachment: fixed;
+    color: #ffffff;
+  }
+  
+  /* Smooth Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-brand-cream);
+    transition: background-color 0.3s ease;
+  }
+  html.dark ::-webkit-scrollbar-track {
+    background: #030712;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+  }
+  html.dark ::-webkit-scrollbar-thumb {
+    background: #0b1220;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+  html.dark ::-webkit-scrollbar-thumb:hover {
+    background: #0f172a;
+  }
+}
+
+/* Glassmorphic Panel */
+.glass-panel {
+  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.3s ease, border-color 0.3s ease;
+}
+
+html.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 30px rgba(56, 189, 248, 0.08);
+}
+
+.glass-panel:hover {
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+  border-color: rgba(109, 59, 215, 0.3);
+  transform: translateY(-4px) scale(1.01);
+}
+
+html.dark .glass-panel:hover {
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 40px rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.3);
+  transform: translateY(-4px) scale(1.01);
+}
+
+/* Recessed Inputs */
+.input-recessed {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: #1e293b;
+  transition: all 0.3s ease, background-color 0.3s ease;
+}
+
+html.dark .input-recessed {
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.input-recessed:focus {
+  outline: none;
+  border-color: #6d3bd7;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05), 0 0 0 3px rgba(109, 59, 215, 0.15);
+}
+
+html.dark .input-recessed:focus {
+  border-color: #38bdf8;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+/* Gradient Buttons */
+.btn-gradient {
+  background: linear-gradient(135deg, #d0bcff 0%, #4cd7f6 100%);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-gradient:hover {
+  transform: scale(1.03);
+  box-shadow: 0 8px 25px rgba(76, 215, 246, 0.5);
+}
+
+html.dark .btn-gradient {
+  background: linear-gradient(90deg, #8b5cf6, #38bdf8);
+  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);
+  color: #030712;
+}
+
+html.dark .btn-gradient:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+}
+
+/* Recessed input in Dashboard */
+.recessed-input {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #1e293b;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark .recessed-input {
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+/* Universal blurs for dark headers and sidebars */
+html.dark header, 
+html.dark nav,
+html.dark aside {
+  backdrop-filter: blur(16px) !important;
+  background: rgba(10, 15, 30, 0.75) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Smooth Premium transitions */
+html.dark .glass-panel,
+html.dark .btn-gradient,
+html.dark .input-recessed,
+html.dark .recessed-input,
+html.dark button,
+html.dark input,
+html.dark select,
+html.dark textarea,
+html.dark a {
+  transition: all 0.25s ease !important;
+}
+
+/* Side navigation active shadow */
+.shadow-active-purple {
+  box-shadow: 0 0 15px rgba(227, 100, 167, 0.4);
+}
+
+/* Nebula glow atmospheres */
+.nebula-glow {
+  position: absolute;
+  filter: blur(150px);
+  opacity: 0.15;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.floating-layer {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+/* TipTap Editor Styles */
+.ProseMirror {
+  outline: none;
+  min-height: 400px;
+  font-size: 1.125rem;
+  line-height: 1.75;
+  color: #334155;
+  transition: color 0.3s ease;
+}
+
+html.dark .ProseMirror {
+  color: #cbd5e1;
+}
+
+.ProseMirror p {
+  margin-bottom: 1.25rem;
+  color: #334155;
+  transition: color 0.3s ease;
+}
+
+html.dark .ProseMirror p {
+  color: #cbd5e1;
+}
+
+.ProseMirror h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #0f172a;
+  transition: color 0.3s ease;
+}
+
+html.dark .ProseMirror h2 {
+  color: #f1f5f9;
+}
+
+.ProseMirror h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #1e293b;
+  transition: color 0.3s ease;
+}
+
+html.dark .ProseMirror h3 {
+  color: #e2e8f0;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.ProseMirror li {
+  margin-bottom: 0.5rem;
+  color: #334155;
+  transition: color 0.3s ease;
+}
+
+html.dark .ProseMirror li {
+  color: #cbd5e1;
+}
+
+.ProseMirror strong {
+  font-weight: 700;
+  color: #0f172a;
+  transition: color 0.3s ease;
+}
+
+html.dark .ProseMirror strong {
+  color: #fff;
+}
+
+/* TipTap Placeholder */
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #94a3b8;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+html.dark .ProseMirror p.is-editor-empty:first-child::before {
+  color: #475569;
+}
+
+/* Shimmer Loading Animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, #94a3b8 25%, #cbd5e1 50%, #94a3b8 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+html.dark .shimmer-text {
+  background: linear-gradient(90deg, #475569 25%, #94a3b8 50%, #475569 75%);
+}
