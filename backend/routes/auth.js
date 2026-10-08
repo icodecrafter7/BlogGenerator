@@ -10,18 +10,22 @@ const router = express.Router();
 const sendTokenResponse = (user, statusCode, res) => {
   const token = jwt.sign(
     { userId: user._id },
-    process.env.JWT_SECRET || 'empathwrite_ultra_secure_jwt_secret_token_2026',
+    process.env.JWT_SECRET ||
+      'empathwrite_ultra_secure_jwt_secret_token_2026',
     { expiresIn: '7d' }
   );
 
   const cookieOptions = {
-    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    expires: new Date(
+      Date.now() + 7 * 24 * 60 * 60 * 1000
+    ),
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
+    sameSite: 'none'
   };
 
-  res.status(statusCode)
+  res
+    .status(statusCode)
     .cookie('token', token, cookieOptions)
     .json({
       success: true,
@@ -29,7 +33,7 @@ const sendTokenResponse = (user, statusCode, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        bio: user.bio || ""
+        bio: user.bio || ''
       }
     });
 };
@@ -42,13 +46,20 @@ router.post('/signup', async (req, res) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Please provide name, email and password' });
+      return res.status(400).json({
+        error: 'Please provide name, email and password'
+      });
     }
 
     // Check if user exists
-    const userExists = await User.findOne({ email: email.toLowerCase() });
+    const userExists = await User.findOne({
+      email: email.toLowerCase()
+    });
+
     if (userExists) {
-      return res.status(400).json({ error: 'User already exists with this email' });
+      return res.status(400).json({
+        error: 'User already exists with this email'
+      });
     }
 
     // Create user
@@ -60,8 +71,13 @@ router.post('/signup', async (req, res) => {
 
     sendTokenResponse(user, 201, res);
   } catch (error) {
-    console.error(`Signup Route Error: ${error.message}`);
-    res.status(500).json({ error: 'Server error during signup' });
+    console.error(
+      `Signup Route Error: ${error.message}`
+    );
+
+    res.status(500).json({
+      error: 'Server error during signup'
+    });
   }
 });
 
@@ -73,25 +89,40 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Please provide email and password' });
+      return res.status(400).json({
+        error: 'Please provide email and password'
+      });
     }
 
     // Find user
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({
+      email: email.toLowerCase()
+    });
+
     if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({
+        error: 'Invalid email or password'
+      });
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
+
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({
+        error: 'Invalid email or password'
+      });
     }
 
     sendTokenResponse(user, 200, res);
   } catch (error) {
-    console.error(`Login Route Error: ${error.message}`);
-    res.status(500).json({ error: 'Server error during login' });
+    console.error(
+      `Login Route Error: ${error.message}`
+    );
+
+    res.status(500).json({
+      error: 'Server error during login'
+    });
   }
 });
 
@@ -100,7 +131,10 @@ router.post('/login', async (req, res) => {
 // @access  Public
 router.post('/guest', async (req, res) => {
   try {
-    let user = await User.findOne({ email: 'guest@empathwrite.local' });
+    let user = await User.findOne({
+      email: 'guest@empathwrite.local'
+    });
+
     if (!user) {
       user = await User.create({
         name: 'Guest Creator',
@@ -109,10 +143,16 @@ router.post('/guest', async (req, res) => {
         bio: 'Just another writer looking for inspiration'
       });
     }
+
     sendTokenResponse(user, 200, res);
   } catch (error) {
-    console.error(`Guest Login Route Error: ${error.message}`);
-    res.status(500).json({ error: 'Server error during guest login' });
+    console.error(
+      `Guest Login Route Error: ${error.message}`
+    );
+
+    res.status(500).json({
+      error: 'Server error during guest login'
+    });
   }
 });
 
@@ -121,13 +161,16 @@ router.post('/guest', async (req, res) => {
 // @access  Private
 router.post('/logout', (req, res) => {
   res.cookie('token', 'none', {
-    expires: new Date(Date.now() + 10 * 1000), // expires in 10s
+    expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
+    sameSite: 'none'
   });
 
-  res.status(200).json({ success: true, message: 'Logged out successfully' });
+  res.status(200).json({
+    success: true,
+    message: 'Logged out successfully'
+  });
 });
 
 // @desc    Get user profile data (Public)
@@ -135,22 +178,33 @@ router.post('/logout', (req, res) => {
 // @access  Public
 router.get('/profile/:userId', async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId).select('-password');
+    const user = await User.findById(
+      req.params.userId
+    ).select('-password');
+
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({
+        error: 'User not found'
+      });
     }
 
     // Find all public blogs authored by this user
-    const publicBlogs = await Blog.find({ userId: user._id, status: 'published', visibility: 'public' })
-      .sort({ createdAt: -1 });
+    const publicBlogs = await Blog.find({
+      userId: user._id,
+      status: 'published',
+      visibility: 'public'
+    }).sort({ createdAt: -1 });
 
     // Find total blogs
     const totalBlogs = publicBlogs.length;
 
-    // Calculate total likes received across all public blogs
+    // Calculate total likes received
     let totalLikesReceived = 0;
-    publicBlogs.forEach(blog => {
-      totalLikesReceived += blog.likes ? blog.likes.length : 0;
+
+    publicBlogs.forEach((blog) => {
+      totalLikesReceived += blog.likes
+        ? blog.likes.length
+        : 0;
     });
 
     res.status(200).json({
@@ -166,8 +220,13 @@ router.get('/profile/:userId', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(`Get Profile Route Error: ${error.message}`);
-    res.status(500).json({ error: 'Server error retrieving user profile' });
+    console.error(
+      `Get Profile Route Error: ${error.message}`
+    );
+
+    res.status(500).json({
+      error: 'Server error retrieving user profile'
+    });
   }
 });
 
@@ -177,13 +236,22 @@ router.get('/profile/:userId', async (req, res) => {
 router.put('/profile', protect, async (req, res) => {
   try {
     const { name, bio } = req.body;
+
     const user = await User.findById(req.user.id);
+
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({
+        error: 'User not found'
+      });
     }
 
-    if (name) user.name = name;
-    if (bio !== undefined) user.bio = bio;
+    if (name) {
+      user.name = name;
+    }
+
+    if (bio !== undefined) {
+      user.bio = bio;
+    }
 
     await user.save();
 
@@ -197,8 +265,13 @@ router.put('/profile', protect, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(`Update Profile Route Error: ${error.message}`);
-    res.status(500).json({ error: 'Server error updating profile' });
+    console.error(
+      `Update Profile Route Error: ${error.message}`
+    );
+
+    res.status(500).json({
+      error: 'Server error updating profile'
+    });
   }
 });
 
