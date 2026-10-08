@@ -32,7 +32,7 @@ app.use(helmet({
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'https://your-frontend.vercel.app'
+    'https://empathwrite-frontend.vercel.app'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
