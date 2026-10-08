@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation
+} from 'react-router-dom';
 import axios from 'axios';
 
 // Import Pages
@@ -12,6 +18,7 @@ import BlogDetails from './pages/BlogDetails.jsx';
 import UserProfile from './pages/UserProfile.jsx';
 
 // Configure Axios Defaults
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || '';
 axios.defaults.withCredentials = true;
 
 const AuthContext = createContext(null);
@@ -23,9 +30,11 @@ export default function App() {
     const savedUser = localStorage.getItem('empathwrite_user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
+
   const [loading, setLoading] = useState(false);
 
-  // Axios interceptor to catch 401s (token expired or unauthorized)
+  // Axios interceptor to catch 401s
+  // (token expired or unauthorized)
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
@@ -34,122 +43,212 @@ export default function App() {
           localStorage.removeItem('empathwrite_user');
           setUser(null);
         }
+
         return Promise.reject(error);
       }
     );
+
     return () => {
       axios.interceptors.response.eject(interceptor);
     };
   }, []);
 
+  // Login
   const login = async (email, password) => {
     setLoading(true);
+
     try {
-      const { data } = await axios.post('/api/auth/login', { email, password });
+      const { data } = await axios.post('/api/auth/login', {
+        email,
+        password
+      });
+
       setUser(data.user);
-      localStorage.setItem('empathwrite_user', JSON.stringify(data.user));
+      localStorage.setItem(
+        'empathwrite_user',
+        JSON.stringify(data.user)
+      );
+
       return { success: true };
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to authenticate user'
+        error:
+          error.response?.data?.error ||
+          'Failed to authenticate user'
       };
     } finally {
       setLoading(false);
     }
   };
 
+  // Signup
   const signup = async (name, email, password) => {
     setLoading(true);
+
     try {
-      const { data } = await axios.post('/api/auth/signup', { name, email, password });
+      const { data } = await axios.post('/api/auth/signup', {
+        name,
+        email,
+        password
+      });
+
       setUser(data.user);
-      localStorage.setItem('empathwrite_user', JSON.stringify(data.user));
+      localStorage.setItem(
+        'empathwrite_user',
+        JSON.stringify(data.user)
+      );
+
       return { success: true };
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.error || 'Registration failed'
+        error:
+          error.response?.data?.error ||
+          'Registration failed'
       };
     } finally {
       setLoading(false);
     }
   };
 
+  // Guest Login
   const loginAsGuest = async () => {
     setLoading(true);
+
     try {
       const { data } = await axios.post('/api/auth/guest');
+
       if (data.success) {
         setUser(data.user);
-        localStorage.setItem('empathwrite_user', JSON.stringify(data.user));
+        localStorage.setItem(
+          'empathwrite_user',
+          JSON.stringify(data.user)
+        );
       }
+
       return { success: true };
     } catch (error) {
       console.error('Guest login failed:', error);
       alert('Failed to initialize guest session.');
+
       return { success: false };
     } finally {
       setLoading(false);
     }
   };
 
+  // Logout
   const logout = async () => {
     try {
-      if (!user?.isGuest) await axios.post('/api/auth/logout');
+      if (!user?.isGuest) {
+        await axios.post('/api/auth/logout');
+      }
     } catch (err) {
-      console.error('Logout error on backend:', err.message);
+      console.error(
+        'Logout error on backend:',
+        err.message
+      );
     } finally {
       setUser(null);
       localStorage.removeItem('empathwrite_user');
     }
   };
 
+  // Update user information in state
   const updateProfileInState = (updatedUser) => {
     setUser(updatedUser);
-    localStorage.setItem('empathwrite_user', JSON.stringify(updatedUser));
+
+    localStorage.setItem(
+      'empathwrite_user',
+      JSON.stringify(updatedUser)
+    );
   };
 
+  // Protected Route
   const ProtectedRoute = ({ children }) => {
     const location = useLocation();
+
     if (!user) {
-      return <Navigate to="/login" state={{ from: location }} replace />;
+      return (
+        <Navigate
+          to="/login"
+          state={{ from: location }}
+          replace
+        />
+      );
     }
+
     return children;
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, loginAsGuest, updateProfileInState, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        signup,
+        logout,
+        loginAsGuest,
+        updateProfileInState,
+        loading
+      }}
+    >
       <BrowserRouter>
         <Routes>
-          {/* Public Views */}
-          <Route path="/" element={<CommunityFeed />} />
-          <Route path="/blog/:blogId" element={<BlogDetails />} />
-          <Route path="/user/:userId" element={<UserProfile />} />
 
-          {/* Auth Views */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          
-          {/* Protected Creator Workspace Views */}
-          <Route 
-            path="/dashboard" 
+          {/* Public Views */}
+          <Route
+            path="/"
+            element={<CommunityFeed />}
+          />
+
+          <Route
+            path="/blog/:blogId"
+            element={<BlogDetails />}
+          />
+
+          <Route
+            path="/user/:userId"
+            element={<UserProfile />}
+          />
+
+          {/* Authentication Views */}
+          <Route
+            path="/login"
+            element={<Login />}
+          />
+
+          <Route
+            path="/signup"
+            element={<Signup />}
+          />
+
+          {/* Protected Creator Workspace */}
+          <Route
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/editor/:id" 
+
+          <Route
+            path="/editor/:id"
             element={
               <ProtectedRoute>
                 <EditorPage />
               </ProtectedRoute>
-            } 
+            }
           />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Unknown Routes */}
+          <Route
+            path="*"
+            element={<Navigate to="/" replace />}
+          />
+
         </Routes>
       </BrowserRouter>
     </AuthContext.Provider>
