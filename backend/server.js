@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import dns from 'dns';
 import connectDB from './config/db.js';
 
-// Configure public DNS resolvers to bypass misconfigured local router/VPN DNS servers (fixes Atlas SRV lookups)
+// Configure public DNS resolvers
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 // Route imports
@@ -26,11 +26,14 @@ const PORT = process.env.PORT || 5000;
 
 // Security & Body parsing Middlewares
 app.use(helmet({
-  contentSecurityPolicy: false, // Turn off CSP for easy local asset loading/SSE
+  contentSecurityPolicy: false,
 }));
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173',
+    'https://your-frontend.vercel.app'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -39,9 +42,12 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Disable caching for dynamic API responses to prevent back-navigation stale reads
+// Disable caching for dynamic API responses
 app.use('/api', (req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader(
+    'Cache-Control',
+    'no-store, no-cache, must-revalidate, proxy-revalidate'
+  );
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   next();
@@ -49,23 +55,35 @@ app.use('/api', (req, res, next) => {
 
 // Health Check
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', time: new Date() });
+  res.status(200).json({
+    status: 'ok',
+    time: new Date()
+  });
 });
 
 // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/blogs', blogRoutes);
-app.use('/api/blogs', generateRoutes); // Merged outline, stream, inline-edit routes under /api/blogs
+app.use('/api/blogs', generateRoutes);
 app.use('/api/comments', commentRoutes);
 
-// Global error handler middleware
+// Global error handler
 app.use((err, req, res, next) => {
   console.error(`Unhandled Server Error: ${err.stack}`);
+
   res.status(err.status || 500).json({
     error: err.message || 'Internal Server Error'
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-});
+// Export app for Vercel
+export default app;
+
+// Run local server only when executed directly
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(
+      `Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`
+    );
+  });
+}
